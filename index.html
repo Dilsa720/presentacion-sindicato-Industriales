@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Manejo y Control de Productos Químicos</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+:root {
+  --top: 54px;
+  --bottom: 54px;
+}
+* { box-sizing:border-box; }
+html,body {
+  margin:0; width:100%; height:100%; overflow:hidden;
+  font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  background:#020617;
+}
+button { font:inherit; -webkit-tap-highlight-color:transparent; }
+#app { width:100vw; height:100dvh; overflow:hidden; position:relative; }
+.slide-shell {
+  position:absolute; inset:0; overflow:auto; overscroll-behavior:contain;
+  transition:opacity .38s ease, transform .38s ease, filter .38s ease;
+}
+.slide-shell.enter-right { opacity:0; transform:translateX(5vw) scale(.99); filter:blur(3px); }
+.slide-shell.enter-left { opacity:0; transform:translateX(-5vw) scale(.99); filter:blur(3px); }
+.scene {
+  min-height:100dvh; position:relative; isolation:isolate; display:flex; align-items:center;
+}
+.bg {
+  position:absolute; inset:0; z-index:-5; background-size:cover; background-position:center;
+}
+.overlay { position:absolute; inset:0; z-index:-4; }
+.overlay.dark {
+  background:linear-gradient(120deg,rgba(2,6,23,.96),rgba(15,23,42,.86),rgba(8,47,73,.72));
+}
+.overlay.light {
+  background:linear-gradient(120deg,rgba(255,255,255,.96),rgba(248,250,252,.91),rgba(224,242,254,.70));
+}
+.grid {
+  position:absolute; inset:0; z-index:-3;
+  background-image:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),
+                   linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);
+  background-size:40px 40px;
+}
+.light .grid {
+  background-image:linear-gradient(rgba(15,23,42,.035) 1px,transparent 1px),
+                   linear-gradient(90deg,rgba(15,23,42,.035) 1px,transparent 1px);
+}
+.content {
+  width:min(1320px,100%); min-height:100dvh; margin:auto;
+  padding:calc(var(--top) + 24px) clamp(52px,6vw,94px) calc(var(--bottom) + 26px);
+  display:flex; flex-direction:column; justify-content:center;
+}
+.inner { width:100%; max-width:1180px; margin:auto; }
+.header { text-align:center; max-width:1060px; margin:0 auto 18px; }
+.eyebrow {
+  font-size:.66rem; letter-spacing:.18em; text-transform:uppercase; font-weight:900;
+}
+.title {
+  margin:.45rem auto 0; text-align:center; font-size:clamp(1.9rem,3.8vw,4.2rem);
+  line-height:1.02; letter-spacing:-.04em; font-weight:950;
+}
+.subtitle {
+  width:min(980px,100%); margin:.8rem auto 0; text-align:center;
+  font-size:clamp(1rem,1.38vw,1.24rem); line-height:1.58; font-weight:600;
+}
+.text-light { color:white; }
+.text-dark { color:#0f172a; }
+.muted-light { color:#dbeafe; }
+.muted-dark { color:#475569; }
+
+.glass-dark {
+  background:rgba(15,23,42,.68); border:1px solid rgba(255,255,255,.14);
+  box-shadow:0 20px 50px rgba(0,0,0,.25); backdrop-filter:blur(18px);
+}
+.glass-light {
+  background:rgba(255,255,255,.90); border:1px solid rgba(15,23,42,.09);
+  box-shadow:0 18px 48px rgba(15,23,42,.16); backdrop-filter:blur(18px);
+}
+.c1 { background:linear-gradient(135deg,#67e8f9,#06b6d4); color:#083344; }
+.c2 { background:linear-gradient(135deg,#fde047,#f59e0b); color:#422006; }
+.c3 { background:linear-gradient(135deg,#86efac,#10b981); color:#052e16; }
+.c4 { background:linear-gradient(135deg,#c084fc,#7c3aed); color:white; }
+.c5 { background:linear-gradient(135deg,#fb923c,#ea580c); color:white; }
+.c6 { background:linear-gradient(135deg,#f472b6,#d946ef); color:white; }
+.c7 { background:linear-gradient(135deg,#60a5fa,#2563eb); color:white; }
+.c8 { background:linear-gradient(135deg,#fb7185,#dc2626); color:white; }
+
+/* FLIP CARDS: height derives from content, so text never gets cut */
+.flip-grid {
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(min(260px,100%),1fr));
+  gap:16px;
+}
+.flip-card {
+  perspective:1200px; cursor:pointer; outline:none; min-width:0;
+}
+.flip-inner {
+  display:grid; transform-style:preserve-3d; transition:transform .62s cubic-bezier(.2,.75,.2,1);
+}
+.flip-card.flipped .flip-inner { transform:rotateY(180deg); }
+.flip-face {
+  grid-area:1/1; border-radius:28px; padding:26px 24px;
+  backface-visibility:hidden; -webkit-backface-visibility:hidden;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  text-align:center; min-height:290px; overflow:visible;
+}
+.flip-back { transform:rotateY(180deg); }
+.icon {
+  width:68px; height:68px; border-radius:20px; display:grid; place-items:center;
+  font-size:2rem; font-weight:950; margin:auto;
+}
+.flip-face h3 {
+  margin:15px auto 0; font-size:clamp(1.16rem,1.55vw,1.48rem); line-height:1.22; font-weight:950;
+}
+.flip-back p {
+  margin:12px auto 0; font-size:clamp(.94rem,1.08vw,1.05rem); line-height:1.58; font-weight:650;
+  max-width:96%;
+}
+
+.compare {
+  display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px;
+}
+.compare-card {
+  min-height:340px; border-radius:30px; padding:32px 28px; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; text-align:center;
+}
+.compare-card p { font-size:1rem; line-height:1.6; max-width:540px; }
+
+.tabs {
+  display:grid; grid-template-columns:minmax(200px,.4fr) minmax(0,1fr); gap:16px;
+}
+.tab-list { display:flex; flex-direction:column; gap:10px; }
+.tab-btn { border-radius:18px; padding:14px 16px; min-height:72px; text-align:center; font-weight:850; }
+.tab-panel {
+  border-radius:30px; padding:36px; min-height:360px; display:flex; flex-direction:column;
+  justify-content:center; align-items:center; text-align:center;
+}
+#tabText { max-width:820px; font-size:1.04rem; line-height:1.65; }
+
+.timeline {
+  display:flex; gap:12px; overflow-x:auto; padding:4px 2px 10px;
+}
+.timeline-card {
+  min-width:min(260px,78vw); flex:1 0 0; min-height:240px; border-radius:26px; padding:22px 20px;
+  display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center;
+}
+.timeline-card h3 { margin:9px 0 0; font-size:1.12rem; font-weight:950; }
+.timeline-card p { margin:9px 0 0; font-size:.92rem; line-height:1.52; }
+
+.story {
+  display:grid; grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr); gap:22px;
+}
+.story-img {
+  position:relative; min-height:360px; border-radius:30px; overflow:hidden; box-shadow:0 20px 48px rgba(0,0,0,.22);
+}
+.story-img img { width:100%; height:100%; object-fit:cover; position:absolute; inset:0; }
+.story-card {
+  min-height:360px; border-radius:30px; padding:34px; display:flex; flex-direction:column;
+  justify-content:center; align-items:center; text-align:center;
+}
+.story-card p { font-size:1.02rem; line-height:1.65; }
+
+.accordion { display:grid; gap:10px; max-width:1000px; margin:auto; }
+.acc { border-radius:19px; overflow:hidden; }
+.acc-head {
+  width:100%; padding:15px 18px; display:flex; justify-content:space-between; gap:12px;
+  align-items:center; font-weight:850; text-align:center;
+}
+.acc-body {
+  max-height:0; opacity:0; overflow:hidden; padding:0 18px; text-align:center;
+  transition:.35s ease; font-size:.95rem; line-height:1.58;
+}
+.acc.open .acc-body { max-height:300px; opacity:1; padding:0 22px 20px; }
+
+.bubbles {
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(min(260px,100%),1fr)); gap:15px;
+}
+.bubble {
+  min-height:210px; border-radius:34px 18px 34px 18px; padding:24px 22px;
+  display:flex; flex-direction:column; justify-content:center; text-align:center;
+}
+
+.quiz {
+  max-width:930px; margin:auto; border-radius:30px; padding:34px; text-align:center;
+}
+.quiz-options { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; margin-top:20px; }
+.quiz-option { border-radius:22px; padding:20px; min-height:120px; text-align:center; }
+
+.checks {
+  display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:11px;
+}
+.check {
+  border-radius:17px; padding:14px 16px; min-height:82px; display:flex; align-items:center; gap:12px;
+}
+.box { width:26px; height:26px; border:2px solid currentColor; border-radius:8px; flex:0 0 auto; display:grid; place-items:center; }
+.check.checked .box::after { content:"✓"; font-weight:950; }
+.check.checked { opacity:.7; }
+
+.final-grid { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:12px; }
+.final-card {
+  min-height:220px; border-radius:28px; padding:20px; display:flex; flex-direction:column;
+  justify-content:center; align-items:center; text-align:center;
+}
+
+.topbar {
+  position:fixed; z-index:60; top:0; left:0; right:0; padding:8px 10px 0; pointer-events:none;
+}
+.top-inner { width:min(1300px,100%); margin:auto; display:flex; align-items:center; gap:10px; }
+.brand,.counter {
+  background:rgba(2,6,23,.78); color:white; border:1px solid rgba(255,255,255,.1);
+  backdrop-filter:blur(14px); pointer-events:auto;
+}
+.brand { display:flex; align-items:center; gap:8px; border-radius:14px; padding:6px 9px; }
+.brand-icon { width:30px; height:30px; border-radius:9px; background:#22d3ee; color:#083344; display:grid; place-items:center; font-weight:950; }
+.progress { flex:1; height:5px; background:rgba(0,0,0,.25); border-radius:99px; overflow:hidden; }
+.progress > div { height:100%; background:linear-gradient(90deg,#22d3ee,#4ade80,#fde047,#fb7185); }
+.counter { min-width:64px; text-align:center; padding:8px 9px; border-radius:13px; font-size:.68rem; font-weight:900; }
+.arrow {
+  position:fixed; z-index:65; top:50%; transform:translateY(-50%); width:42px; height:42px; border-radius:50%;
+  background:rgba(2,6,23,.7); color:white; border:1px solid rgba(255,255,255,.15); display:grid; place-items:center;
+}
+#prev { left:7px; } #next { right:7px; }
+.arrow:disabled { opacity:.22; }
+.bottom {
+  position:fixed; z-index:60; bottom:0; left:0; right:0; padding:0 8px max(7px,env(safe-area-inset-bottom)); pointer-events:none;
+}
+.bottom-inner {
+  width:min(1050px,100%); margin:auto; min-height:48px; display:flex; gap:7px; align-items:center; padding:5px;
+  border-radius:15px; background:rgba(2,6,23,.8); border:1px solid rgba(255,255,255,.1); backdrop-filter:blur(17px);
+  pointer-events:auto;
+}
+.ui { width:37px; height:37px; border-radius:10px; display:grid; place-items:center; color:white; flex:0 0 auto; }
+.bullets { flex:1; display:flex; align-items:center; gap:5px; overflow-x:auto; scrollbar-width:none; }
+.bullets::-webkit-scrollbar { display:none; }
+.bullet { width:8px; height:8px; border-radius:50%; background:rgba(255,255,255,.28); flex:0 0 auto; }
+.bullet.current { width:25px; border-radius:99px; background:#22d3ee; }
+
+#indexModal {
+  position:fixed; inset:0; z-index:100; background:rgba(2,6,23,.95); overflow:auto; padding:18px; backdrop-filter:blur(18px);
+}
+#indexModal.hidden { display:none; }
+.index-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; max-width:1100px; margin:20px auto; }
+.index-card { padding:14px; border-radius:17px; color:white; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1); text-align:center; }
+
+/* Smaller laptops 12-14 inches */
+@media (min-width:769px) and (max-height:820px) {
+  .content { padding-top:64px; padding-bottom:64px; justify-content:flex-start; }
+  .title { font-size:clamp(1.6rem,3vw,3rem); }
+  .subtitle { font-size:1rem; line-height:1.45; }
+  .flip-face { min-height:230px; padding:20px; }
+  .flip-back p { font-size:.88rem; line-height:1.5; }
+  .timeline-card { min-height:205px; }
+  .compare-card { min-height:270px; }
+  .story-img,.story-card { min-height:285px; }
+}
+
+/* Tablets */
+@media (max-width:1050px) {
+  .content { padding-left:58px; padding-right:58px; }
+  .flip-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .final-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .index-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+
+/* Phones */
+@media (max-width:768px) {
+  .scene { display:block; }
+  .content { min-height:auto; padding:68px 42px 76px; justify-content:flex-start; }
+  .title { font-size:clamp(1.65rem,8vw,2.5rem); }
+  .subtitle { font-size:1rem; line-height:1.5; }
+  .brand-copy { display:none; }
+  .flip-grid { grid-template-columns:1fr; }
+  .flip-face { min-height:285px; padding:24px 21px; }
+  .flip-back p { font-size:.96rem; line-height:1.58; }
+  .compare { grid-template-columns:1fr; }
+  .compare-card { min-height:300px; }
+  .tabs { grid-template-columns:1fr; }
+  .tab-list { flex-direction:row; overflow-x:auto; }
+  .tab-btn { min-width:160px; }
+  .tab-panel { min-height:320px; }
+  .story { grid-template-columns:1fr; }
+  .story-img { min-height:280px; }
+  .story-card { min-height:auto; }
+  .quiz-options { grid-template-columns:1fr; }
+  .checks { grid-template-columns:1fr; }
+  .final-grid { grid-template-columns:1fr; }
+  .index-grid { grid-template-columns:1fr; }
+  .arrow { width:36px; height:36px; }
+  #prev { left:3px; } #next { right:3px; }
+}
+
+@media (max-width:430px) {
+  .content { padding-left:38px; padding-right:38px; }
+  .flip-face { min-height:300px; }
+}
+
+/* =========================================================
+   FUENTES Y ENLACES DE CONSULTA
+   ========================================================= */
+.source-links{
+  margin-top:16px;
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:center;
+  gap:8px;
+}
+.source-link{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  min-height:38px;
+  padding:8px 12px;
+  border-radius:12px;
+  text-decoration:none;
+  font-size:.72rem;
+  line-height:1.2;
+  font-weight:850;
+  text-align:center;
+  transition:transform .18s ease, background .18s ease;
+}
+.source-link:hover{
+  transform:translateY(-2px);
+}
+.source-link.dark{
+  color:#e0f2fe;
+  background:rgba(2,6,23,.74);
+  border:1px solid rgba(103,232,249,.24);
+}
+.source-link.light{
+  color:#075985;
+  background:rgba(255,255,255,.9);
+  border:1px solid rgba(14,116,144,.18);
+  box-shadow:0 8px 24px rgba(15,23,42,.10);
+}
+.sources-note{
+  margin-top:9px;
+  text-align:center;
+  font-size:.68rem;
+  line-height:1.4;
+  opacity:.72;
+}
+#sourcesModal{
+  position:fixed;
+  inset:0;
+  z-index:110;
+  background:rgba(2,6,23,.96);
+  backdrop-filter:blur(20px);
+  overflow:auto;
+  padding:18px;
+}
+#sourcesModal.hidden{ display:none; }
+.sources-wrap{
+  width:min(1050px,100%);
+  margin:0 auto;
+  padding-bottom:30px;
+}
+.sources-head{
+  position:sticky;
+  top:0;
+  z-index:3;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:15px;
+  padding:10px 0 14px;
+  background:rgba(2,6,23,.94);
+}
+.sources-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;
+}
+.source-resource{
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+  min-height:145px;
+  padding:17px;
+  border-radius:18px;
+  color:white;
+  background:rgba(255,255,255,.065);
+  border:1px solid rgba(255,255,255,.11);
+}
+.source-resource h3{
+  margin:0;
+  font-size:.95rem;
+  line-height:1.25;
+  font-weight:900;
+}
+.source-resource p{
+  margin:7px 0 14px;
+  color:#cbd5e1;
+  font-size:.76rem;
+  line-height:1.45;
+}
+.source-resource a{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  align-self:flex-start;
+  color:#083344;
+  background:#67e8f9;
+  text-decoration:none;
+  font-size:.72rem;
+  font-weight:900;
+  padding:8px 11px;
+  border-radius:10px;
+}
+@media(max-width:768px){
+  .source-links{ gap:7px; }
+  .source-link{ width:100%; }
+  .sources-grid{ grid-template-columns:1fr; }
+}
+
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="root"></div>
+
+  <div class="topbar">
+    <div class="top-inner">
+      <div class="brand">
+        <div class="brand-icon">Q</div>
+        <div class="brand-copy">
+          <div style="font-size:.54rem;color:#67e8f9;font-weight:900;letter-spacing:.15em;text-transform:uppercase;">Capacitación</div>
+          <div style="font-size:.69rem;font-weight:800;">Manejo y Control de Químicos</div>
+        </div>
+      </div>
+      <div class="progress"><div id="progress"></div></div>
+      <div id="counter" class="counter"></div>
+    </div>
+  </div>
+
+  <button id="prev" class="arrow" aria-label="Anterior"><i data-lucide="chevron-left"></i></button>
+  <button id="next" class="arrow" aria-label="Siguiente"><i data-lucide="chevron-right"></i></button>
+
+  <div class="bottom">
+    <div class="bottom-inner">
+      <button id="menu" class="ui"><i data-lucide="layout-grid"></i></button>
+      <div id="bullets" class="bullets"></div>
+      <button id="sourcesBtn" class="ui" title="Fuentes y enlaces oficiales" aria-label="Fuentes y enlaces oficiales"><i data-lucide="external-link"></i></button>
+      <button id="full" class="ui"><i data-lucide="maximize"></i></button>
+    </div>
+  </div>
+
+  <div id="indexModal" class="hidden">
+    <div style="max-width:1100px;margin:auto;display:flex;justify-content:space-between;align-items:center;color:white;">
+      <div>
+        <div style="color:#67e8f9;font-size:.64rem;font-weight:900;letter-spacing:.18em;text-transform:uppercase;">Navegación</div>
+        <div style="font-size:2rem;font-weight:950;">Contenido · 40 diapositivas</div>
+      </div>
+      <button id="closeIndex" class="ui" style="background:rgba(255,255,255,.1);"><i data-lucide="x"></i></button>
+    </div>
+    <div id="indexGrid" class="index-grid"></div>
+  </div>
+  <div id="sourcesModal" class="hidden">
+    <div class="sources-wrap">
+      <div class="sources-head">
+        <div>
+          <div style="color:#67e8f9;font-size:.64rem;font-weight:900;letter-spacing:.18em;text-transform:uppercase;">
+            Consulta oficial
+          </div>
+          <div style="color:white;font-size:clamp(1.5rem,4vw,2.3rem);font-weight:950;">
+            Fuentes y enlaces de la presentación
+          </div>
+          <div style="color:#94a3b8;font-size:.76rem;margin-top:4px;">
+            Los accesos corresponden a los hipervínculos incluidos en el PowerPoint original.
+          </div>
+        </div>
+        <button id="closeSources" class="ui" style="background:rgba(255,255,255,.1);" aria-label="Cerrar fuentes">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <div id="sourcesGrid" class="sources-grid"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const slides = [{"type": "cover", "theme": "dark", "title": "Manejo y Control de Productos Químicos", "subtitle": "Identificación · Seguridad · Trazabilidad · Cumplimiento", "intro": "Material interactivo de consulta para reconocer productos químicos, comprender sus peligros, controlar sus movimientos y responder de forma segura dentro de la operación industrial."}, {"type": "timeline", "theme": "light", "title": "Manejar un químico es controlar toda su trayectoria", "subtitle": "El manejo empieza antes de abrir el envase.", "items": [["🛒", "Comprar e importar", "Verificar identidad, proveedor, composición, documentación y requisitos aplicables."], ["📥", "Recibir", "Confirmar producto, cantidad, envase, etiqueta y documentos antes de descargar."], ["🏭", "Almacenar", "Asignar ubicación según peligro, compatibilidad, segregación, ventilación y contención."], ["🔄", "Utilizar y mover", "Registrar consumos, entregas, devoluciones y transferencias."], ["🚛", "Transportar", "Verificar producto, cantidad, vehículo, conductor y documentación."], ["♻️", "Disponer", "Controlar residuos, vencidos y salida final para mantener trazabilidad."]]}, {"type": "flip", "theme": "dark", "title": "¿Por qué debemos controlar los productos químicos?", "subtitle": "El control protege a la persona, a la instalación, a la operación y al cumplimiento.", "cards": [["🧑‍🔧", "Personas", "Una exposición puede provocar quemaduras, intoxicación, irritación, daño ocular o problemas respiratorios."], ["🏭", "Instalaciones", "Un manejo incorrecto puede generar incendio, explosión, corrosión, contaminación o daño de equipos."], ["⚙️", "Operación", "Una fuga, pérdida o clasificación incorrecta puede detener procesos, afectar inventario y generar retrasos."], ["⚖️", "Cumplimiento", "Licencias, permisos, inventarios, reportes y trazabilidad forman parte del sistema de control administrativo."]]}, {"type": "flip", "theme": "light", "title": "Cuatro conceptos que no significan lo mismo", "subtitle": "Toca cada tarjeta para ver una definición ampliada.", "cards": [["⚗️", "Producto químico", "Producto compuesto por una o más sustancias químicas. Puede utilizarse como materia prima, reactivo, solvente, limpiador, aditivo, lubricante u otro insumo industrial. Ser químico no significa automáticamente estar controlado."], ["⚠️", "Producto peligroso", "Producto cuyas propiedades pueden causar daño a personas, instalaciones o ambiente. La peligrosidad puede relacionarse con inflamabilidad, corrosividad, toxicidad, oxidación o reactividad."], ["🔐", "Sustancia controlada", "Sustancia incorporada al régimen de control de la Ley 19 de 2005. Su uso industrial puede ser legítimo, pero determinadas actividades quedan sujetas a controles administrativos."], ["👁️", "Sustancia vigilada", "Sustancia incorporada al listado nacional de vigilancia. Vigilada no significa prohibida; implica monitoreo y las obligaciones que correspondan."]]}, {"type": "compare", "theme": "dark", "title": "Sustancia química vs. mezcla", "subtitle": "El nombre comercial por sí solo no basta para identificar lo que tenemos.", "left": ["🧪", "Sustancia química", "Materia con características y composición determinadas. El nombre químico y el número CAS ayudan a identificarla de forma específica."], "right": ["🧴", "Mezcla", "Producto compuesto por dos o más sustancias. Una mezcla puede contener componentes regulados y por eso deben revisarse composición y concentración."]}, {"type": "tabs", "theme": "light", "title": "Tres preguntas para cualquier producto", "subtitle": "Antes de aprobar, comprar, recibir o almacenar un químico.", "tabs": [["1️⃣", "¿Qué es?", "Identidad del producto: nombre químico, nombre comercial, fabricante, composición y número CAS."], ["2️⃣", "¿Qué puede hacer?", "Peligros: inflamabilidad, corrosividad, toxicidad, oxidación, reactividad y otras características según la SDS/HDS."], ["3️⃣", "¿Está regulado?", "Verificar la sustancia y su concentración contra el listado vigente y determinar qué requisitos administrativos corresponden."]]}, {"type": "flip", "theme": "dark", "title": "Peligrosa, controlada y precursor", "subtitle": "Son categorías diferentes y cumplen funciones distintas.", "cards": [["☣️", "Sustancia peligrosa", "Sus propiedades pueden causar daño. Puede ser inflamable, corrosiva, tóxica, oxidante o reactiva. Peligrosa no significa prohibida: significa que requiere controles apropiados."], ["🔐", "Sustancia controlada", "Está incorporada al régimen de control. Su uso lícito no elimina licencias, permisos, registros u obligaciones administrativas que correspondan."], ["🧩", "Precursor", "Sustancia que puede participar en determinados procesos para producir o transformar drogas ilícitas. Muchos precursores también tienen usos industriales legítimos."]]}, {"type": "story", "theme": "light", "title": "¿Qué significa desvío?", "subtitle": "La trazabilidad permite detectar cuando una cantidad deja de tener explicación.", "story": "Ejemplo: la empresa compra 500 litros. Producción documenta 400 litros. Los otros 100 litros no están físicamente presentes y no existe documento que explique qué ocurrió. La diferencia no debe ocultarse ni corregirse directamente: debe investigarse.", "takeaway": "Desvío es el paso de una sustancia desde un uso lícito previsto hacia canales ilícitos. Una diferencia sin explicación requiere investigación y escalamiento."}, {"type": "compare", "theme": "dark", "title": "Controlada vs. vigilada", "subtitle": "Ambas pueden generar responsabilidades, pero no significan lo mismo.", "left": ["🔐", "CONTROLADA", "Forma parte del régimen de control y puede requerir licencia, permisos, registros y reportes específicos."], "right": ["👁️", "VIGILADA", "Forma parte del listado nacional de vigilancia. No significa automáticamente que sea ilegal o que requiera exactamente los mismos controles de una sustancia controlada."]}, {"type": "tabs", "theme": "light", "title": "CONAPRED y la Unidad de Control de Químicos", "subtitle": "El sistema incluye registros, autorizaciones y fiscalización.", "tabs": [["🏛️", "CONAPRED", "Comisión Nacional para el Estudio y la Prevención de los Delitos Relacionados con Drogas."], ["🧪", "UCQ", "La Unidad de Control de Químicos interviene en registros, inspecciones, licencias, permisos y fiscalización."], ["🪪", "Registro y licencia", "Determinadas empresas que realizan actividades con sustancias reguladas deben revisar si califican como operadores y qué autorizaciones necesitan."], ["🚢", "Permisos", "Según la operación pueden existir trámites relacionados con importación, exportación, transporte, compra local u otros movimientos."]]}, {"type": "flip", "theme": "dark", "title": "Operador, Responsable Químico y Personal", "subtitle": "Cada rol aporta una barrera distinta de control.", "cards": [["🏢", "Operador", "Persona natural o jurídica registrada que desarrolla actividades con sustancias reguladas: importar, distribuir, transformar, utilizar, almacenar o comercializar."], ["🧑‍🔬", "Responsable Químico", "Responsable técnico de vigilar el cumplimiento relacionado con sustancias reguladas y las funciones correspondientes a su idoneidad profesional."], ["👥", "Personal", "No necesita convertirse en químico. Debe identificar el producto, consultar la información correcta, seguir procedimientos y saber cuándo detenerse y escalar."]]}, {"type": "compare", "theme": "light", "title": "Cuadro I y Cuadro II", "subtitle": "Clasificación regulatoria de precursores, no escala de toxicidad.", "left": ["Ⅰ", "CUADRO I", "Incluye precursores sujetos a controles más estrictos dentro del sistema internacional y nacional de fiscalización."], "right": ["Ⅱ", "CUADRO II", "Incluye otras sustancias relevantes para el sistema de control, muchas con usos industriales comunes y controles igualmente monitoreados."]}, {"type": "quiz", "theme": "dark", "title": "Evita este error de interpretación", "subtitle": "Comprueba el concepto antes de continuar.", "question": "¿Cuadro I significa automáticamente “más tóxico” y Cuadro II “menos tóxico”?", "answers": [["A", "Sí. Los cuadros representan una escala de toxicidad.", false], ["B", "No. Son categorías de control de precursores, no una escala de peligrosidad ocupacional.", true]], "feedback": "Correcto. La clasificación regulatoria y la clasificación de peligros para salud y seguridad son evaluaciones diferentes."}, {"type": "timeline", "theme": "light", "title": "Antes de comprar un químico", "subtitle": "La decisión de compra debe comenzar con información suficiente.", "items": [["🏷️", "Identidad", "Solicitar nombre comercial, nombre químico y fabricante."], ["🔢", "Número CAS", "Utilizar el CAS para identificar de manera específica la sustancia."], ["🧪", "Composición", "Revisar componentes y concentraciones, especialmente en mezclas."], ["📚", "SDS/HDS", "Obtener el documento de seguridad correspondiente al producto."], ["📐", "Ficha técnica", "Confirmar características técnicas y adecuación al uso previsto."], ["⚖️", "Regulación", "Verificar la situación del producto antes de incorporarlo a la operación."]]}, {"type": "story", "theme": "dark", "title": "Número CAS", "subtitle": "Un identificador que ayuda a saber exactamente qué sustancia se está evaluando.", "story": "El número CAS es un identificador numérico asociado a una sustancia. Resulta útil cuando existen sinónimos, nombres comerciales o traducciones diferentes. Permite comparar la sustancia declarada por el proveedor con información técnica y regulatoria.", "takeaway": "El CAS identifica la sustancia, pero no sustituye la SDS/HDS. No indica por sí solo peligros, almacenamiento, EPP o procedimientos de emergencia."}, {"type": "tabs", "theme": "light", "title": "SDS, HDS y FDS", "subtitle": "Cambian las siglas, pero la función es la misma: información de seguridad.", "tabs": [["SDS", "Safety Data Sheet", "Denominación habitual en inglés. Contiene información estandarizada sobre peligros, manejo, almacenamiento, exposición, emergencias y transporte."], ["HDS", "Hoja de Datos de Seguridad", "Denominación utilizada en español. Permite consultar cómo trabajar de manera segura con el producto."], ["FDS", "Ficha de Datos de Seguridad", "Otra denominación usada para el mismo tipo de documento. Debe corresponder exactamente al producto utilizado."]]}, {"type": "accordion", "theme": "dark", "title": "SDS/HDS: secciones que debes saber consultar", "subtitle": "No necesitas memorizar las 16; necesitas saber dónde buscar.", "items": [["Sección 1 · Identificación", "Confirma producto, proveedor, usos identificados y datos básicos."], ["Sección 2 · Peligros", "Clasificación, pictogramas y advertencias."], ["Sección 4 · Primeros auxilios", "Qué hacer ante inhalación, contacto con piel, ojos o ingestión."], ["Sección 5 · Incendio", "Medios de extinción y precauciones especiales."], ["Sección 6 · Derrames", "Contención, limpieza y medidas ante liberaciones accidentales."], ["Sección 7 · Manejo y almacenamiento", "Condiciones recomendadas para manipulación y almacenamiento."], ["Sección 8 · EPP y exposición", "Controles de exposición y protección personal."], ["Sección 10 · Estabilidad", "Reactividad, condiciones que deben evitarse y materiales incompatibles."], ["Sección 14 · Transporte", "Información relevante para la clasificación y transporte."]]}, {"type": "flip", "theme": "light", "title": "¿Qué respuestas debe darte una SDS/HDS?", "subtitle": "Úsala durante la operación y también durante una emergencia.", "cards": [["⚠️", "¿Qué peligro tiene?", "Permite revisar inflamabilidad, corrosividad, toxicidad, reactividad y otras características del producto."], ["🩹", "¿Qué hago si alguien se expone?", "Describe primeros auxilios según la vía de exposición: inhalación, piel, ojos o ingestión."], ["🔥", "¿Qué hago si se incendia?", "Indica medios de extinción apropiados, peligros específicos y precauciones para responder."], ["📦", "¿Cómo debo almacenarlo?", "Informa sobre ventilación, incompatibilidades, manipulación y condiciones de almacenamiento."], ["🥽", "¿Qué protección necesito?", "Ayuda a definir controles de exposición y EPP adecuados al producto y la tarea."], ["💧", "¿Qué hago si se derrama?", "Orienta sobre aislamiento, contención, limpieza, protección personal y residuos."]]}, {"type": "compare", "theme": "dark", "title": "SDS/HDS, Ficha Técnica y COA", "subtitle": "Los tres documentos son útiles, pero responden preguntas distintas.", "left": ["🛡️", "SDS / HDS", "Se concentra en seguridad: peligros, exposición, primeros auxilios, incendio, derrames, almacenamiento, EPP e incompatibilidades."], "right": ["📐", "Ficha Técnica + COA", "La ficha técnica describe características y aplicación. El COA muestra resultados analíticos de un lote. Ninguno sustituye una SDS/HDS."]}, {"type": "compare", "theme": "light", "title": "Peligro vs. riesgo", "subtitle": "Dos conceptos relacionados, pero no equivalentes.", "left": ["⚠️", "PELIGRO", "Característica del producto con capacidad de causar daño. Ejemplos: inflamabilidad, corrosividad, toxicidad o reactividad."], "right": ["🎯", "RIESGO", "Probabilidad y consecuencia de que el daño ocurra en una tarea concreta. Depende de exposición, cantidad, frecuencia, procedimiento y controles."]}, {"type": "flip", "theme": "dark", "title": "Peligros que debes reconocer", "subtitle": "Identificar el peligro ayuda a decidir qué controles aplicar.", "cards": [["🧪", "Corrosivo", "Puede causar daño químico a tejidos y materiales. Puede producir quemaduras, daño ocular y deterioro de equipos."], ["🔥", "Inflamable", "Puede encenderse bajo determinadas condiciones. Deben controlarse calor, llamas, chispas y otras fuentes de ignición."], ["☠️", "Tóxico", "Puede producir efectos nocivos por inhalación, ingestión o contacto. La severidad depende del producto y la exposición."], ["⭕", "Oxidante", "Puede provocar o intensificar la combustión de otros materiales."], ["💥", "Reactivo", "Puede reaccionar peligrosamente y generar calor, gases, presión u otros efectos no deseados."]]}, {"type": "story", "theme": "light", "title": "Incompatibilidad", "subtitle": "El problema puede aparecer cuando dos productos se mezclan durante una fuga o accidente.", "story": "Dos sustancias son incompatibles cuando al entrar en contacto pueden generar una reacción no deseada o peligrosa: calor, gases, presión, incendio o reacción violenta. Dos tambores cerrados pueden parecer inofensivos; el problema aparece si ambos se rompen y sus contenidos se mezclan.", "takeaway": "La compatibilidad se evalúa antes del accidente utilizando la SDS/HDS y la información técnica del producto."}, {"type": "tabs", "theme": "dark", "title": "Segregación", "subtitle": "Separar productos por compatibilidad, no solo por orden visual.", "tabs": [["↔️", "Separar", "Segregar significa mantener apartadas las sustancias que no deberían almacenarse juntas."], ["⚠️", "Considerar peligros", "La ubicación debe considerar inflamabilidad, corrosividad, oxidación, reactividad y otras propiedades."], ["📚", "Consultar SDS/HDS", "La información de almacenamiento e incompatibilidades ayuda a decidir qué productos pueden compartir un área."], ["❌", "No por alfabeto", "Ordenar únicamente por nombre, presentación o proveedor puede dejar juntos productos incompatibles."]]}, {"type": "flip", "theme": "light", "title": "Contención secundaria y ventilación", "subtitle": "Dos controles de ingeniería esenciales.", "cards": [["🛢️", "Contención primaria", "Es el recipiente principal que contiene normalmente el producto: tambor, bidón, tanque, botella u otro envase."], ["🟨", "Contención secundaria", "Barrera adicional destinada a recibir el producto si falla el recipiente principal. Ejemplos: cubeto, bandeja, pallet antiderrame o dique."], ["🌬️", "Ventilación", "Renovación o movimiento del aire para disminuir la acumulación de contaminantes y vapores."], ["🏭", "Extracción localizada", "Sistema diseñado para capturar contaminantes cerca del punto donde se generan."]]}, {"type": "flip", "theme": "dark", "title": "EPP — Equipo de Protección Personal", "subtitle": "Tener EPP no significa automáticamente estar protegido.", "cards": [["🧤", "Guantes", "El material del guante debe ser compatible con la sustancia, concentración, tiempo de contacto y tarea. No existe un guante universal."], ["🥽", "Protección ocular", "Puede requerirse lente de seguridad, monogafa o pantalla facial según el riesgo de salpicadura."], ["😷", "Protección respiratoria", "Debe seleccionarse según el contaminante y la exposición. Cualquier mascarilla no protege necesariamente contra vapores químicos."], ["🥼", "Protección corporal", "Ropa y calzado deben seleccionarse considerando tipo de sustancia, cantidad y posibilidad de contacto."]]}, {"type": "timeline", "theme": "light", "title": "Jerarquía de controles", "subtitle": "El EPP es importante, pero no debe ser la única barrera.", "items": [["1", "Eliminación", "Eliminar el peligro cuando sea técnica y operacionalmente posible."], ["2", "Sustitución", "Reemplazar el producto por una alternativa menos peligrosa cuando sea viable."], ["3", "Ingeniería", "Ventilación, contención, segregación, barreras, sistemas cerrados y diseño."], ["4", "Administrativos", "Procedimientos, capacitación, señalización, inspecciones y control de acceso."], ["5", "EPP", "Protección personal frente a la exposición residual."]]}, {"type": "checklist", "theme": "dark", "title": "¿Cómo debe verse una bodega controlada?", "subtitle": "La bodega debe demostrar control, no solo apariencia de orden.", "items": ["Productos correctamente identificados.", "Etiquetas legibles y coherentes con el contenido.", "Segregación según peligro y compatibilidad.", "Acceso restringido a personal autorizado.", "Inventario actualizado y fidedigno.", "SDS/HDS accesibles.", "Vencidos identificados y separados.", "Contención secundaria cuando corresponde.", "Kit de derrames apropiado y accesible."]}, {"type": "quiz", "theme": "light", "title": "Una bodega limpia puede ser insegura", "subtitle": "La apariencia visual no permite confirmar por sí sola que exista control químico.", "question": "El piso está impecable y los estantes son nuevos. ¿Eso demuestra que la bodega es segura?", "answers": [["A", "Sí. Una bodega limpia necesariamente está controlada.", false], ["B", "No. Deben verificarse identificación, segregación, trazabilidad, acceso, documentos y condiciones reales.", true]], "feedback": "Correcto. Orden visual no equivale a control químico."}, {"type": "timeline", "theme": "dark", "title": "Trazabilidad", "subtitle": "Reconstruir la historia del producto desde que entra hasta que sale o se desecha.", "items": [["1", "Proveedor", "¿Quién lo suministró y con qué documentos?"], ["2", "Recepción", "¿Cuándo llegó y cuánto ingresó?"], ["3", "Ubicación", "¿Dónde fue almacenado?"], ["4", "Movimiento", "¿Cuánto se entregó y a quién?"], ["5", "Saldo", "¿Cuánto debería quedar y cuánto existe físicamente?"], ["6", "Salida final", "¿Qué ocurrió con residuos, vencidos o devoluciones?"]]}, {"type": "compare", "theme": "light", "title": "Inventario químico y Kardex", "subtitle": "Dos herramientas complementarias para controlar cantidades.", "left": ["📊", "Inventario químico", "Registro organizado de productos y cantidades existentes. Puede incluir nombre, CAS, unidad, ubicación, lote, entradas, salidas y saldo."], "right": ["📖", "Kardex", "Registro continuo de entradas, salidas y saldo. Permite reconstruir cada movimiento con fecha, cantidad y responsable."]}, {"type": "story", "theme": "dark", "title": "¿Qué hacemos cuando el inventario no cuadra?", "subtitle": "Una diferencia es información que debe investigarse, no un número que debe desaparecer.", "story": "Ejemplo: el sistema indica 68 kg, pero el conteo físico encuentra 65 kg. Existen 3 kg de diferencia. Antes de modificar el registro, debemos recontar, confirmar unidades, revisar entradas y salidas, transferencias, producción, devoluciones, derrames, mermas y posibles errores de digitación.", "takeaway": "Si la diferencia continúa sin explicación, debe escalarse. Corregir directamente el sistema puede ocultar un problema de trazabilidad."}, {"type": "timeline", "theme": "light", "title": "Informe mensual", "subtitle": "Conciliar antes de reportar.", "items": [["📥", "Entradas", "Revisar compras, recepciones y otros ingresos."], ["📤", "Salidas", "Verificar consumos, entregas, transferencias y devoluciones."], ["🔄", "Conciliación", "Comparar movimientos registrados con documentos y existencia física."], ["📊", "Saldo final", "Confirmar que el saldo pueda explicarse y demostrarse."], ["🏛️", "Reporte", "Presentar la información dentro del plazo aplicable."]]}, {"type": "compare", "theme": "dark", "title": "Licencia de operación vs. permiso", "subtitle": "La licencia del operador no sustituye automáticamente cada autorización específica.", "left": ["🏢", "LICENCIA", "Autoriza al operador a desarrollar actividades dentro del alcance aprobado y con las sustancias contempladas."], "right": ["📄", "PERMISO", "Autorización asociada a una operación específica que lo requiera, por ejemplo importación, exportación, transporte, compra local o tránsito."]}, {"type": "timeline", "theme": "light", "title": "Alta de un nuevo químico", "subtitle": "Un producto nuevo debe analizarse antes de que llegue a la bodega.", "items": [["1", "Identificar", "Confirmar nombre, fabricante, composición y CAS."], ["2", "Documentar", "Obtener SDS/HDS, ficha técnica y otros documentos requeridos."], ["3", "Evaluar", "Definir peligros, EPP, incompatibilidades y almacenamiento."], ["4", "Verificar regulación", "Revisar si está controlado, vigilado o sujeto a autorizaciones."], ["5", "Confirmar capacidad", "Verificar que exista espacio y condiciones seguras para recibirlo."], ["6", "Aprobar", "Incorporarlo al inventario solo después de completar la revisión."]]}, {"type": "flip", "theme": "dark", "title": "Documentos de compra e importación", "subtitle": "Los documentos deben contar la misma historia.", "cards": [["💵", "Factura comercial", "Describe producto, cantidad, proveedor, comprador y valor de la operación comercial."], ["📦", "Packing List", "Detalla el contenido y la presentación física de la carga: bultos, tambores, cajas, peso u otras características."], ["🚢", "Bill of Lading", "Documento utilizado para transporte marítimo. Permite verificar información de embarque y carga."], ["✈️", "Air Waybill", "Documento utilizado para transporte aéreo y que debe ser coherente con los demás documentos."], ["🚛", "Carta Porte", "Documento relacionado con determinados transportes terrestres."]]}, {"type": "accordion", "theme": "light", "title": "Recepción de químicos: antes de descargar", "subtitle": "Verificar que lo entregado coincide con lo autorizado, comprado y esperado.", "items": [["1 · Verificar el producto", "Confirmar nombre, número CAS y presentación."], ["2 · Verificar la cantidad", "Comparar cantidad física contra factura y permiso cuando aplique."], ["3 · Revisar envase y etiqueta", "Confirmar integridad, ausencia de fugas e identificación legible."], ["4 · Revisar documentación", "Verificar documentos de transporte y disponibilidad de espacio adecuado."], ["5 · Registrar la entrada", "Ingresar el movimiento al inventario antes de distribuirlo a otras áreas."], ["Cuarentena", "Si existe duda sobre identificación, cantidad, envase, documentación o calidad, separar temporalmente y bloquear el uso."]]}, {"type": "tabs", "theme": "dark", "title": "Incidente vs. accidente", "subtitle": "No debemos esperar a que exista una lesión para aprender de una condición peligrosa.", "tabs": [["⚠️", "Incidente", "Evento no deseado que generó o pudo haber generado consecuencias. Ejemplo: detectar una válvula deteriorada antes de que falle."], ["🚑", "Accidente", "Evento no deseado que produce una consecuencia real, como lesión, exposición, incendio, contaminación o daño."], ["🔎", "Diferencia práctica", "Detectar el problema antes de la consecuencia es incidente. Si la válvula falla y una persona resulta expuesta, ya existe un accidente."], ["📋", "Aprendizaje", "Ambos deben investigarse. Un incidente proporciona información para prevenir un accidente posterior."]]}, {"type": "flip", "theme": "light", "title": "P.A.R.E. — Respuesta inicial", "subtitle": "Una metodología didáctica para recordar qué hacer bajo presión.", "cards": [["P", "PROTÉJASE", "Evite convertirse en otra víctima. Observe la situación antes de acercarse y determine si existen vapores, fuego, derrames u otros peligros."], ["A", "AÍSLE", "Restrinja el acceso al área, aleje a personas no involucradas y evite nuevas exposiciones."], ["R", "REVISE", "Identifique el producto cuando sea posible y consulte la SDS/HDS. Determine si el evento está dentro de la capacidad interna."], ["E", "ESCALE", "Solicite el nivel de ayuda necesario. Si el evento supera la capacidad interna, busque apoyo especializado."]]}, {"type": "checklist", "theme": "dark", "title": "Lista de verificación operativa", "subtitle": "Úsala como auditoría rápida de la situación actual.", "items": ["Químicos identificados con nombre completo y CAS.", "SDS/HDS accesibles en el área.", "Inventario conciliado con conteo físico.", "Segregación según peligro y compatibilidad.", "Contención secundaria donde corresponde.", "Licencia vigente y alcance revisado.", "Permisos gestionados cuando corresponda.", "Informes mensuales dentro del plazo aplicable.", "Kit de derrames apropiado.", "Personal capacitado en P.A.R.E.", "Productos vencidos identificados y segregados.", "Diferencias investigadas antes de corregir registros."]}, {"type": "final", "theme": "light", "title": "El control químico es responsabilidad compartida", "subtitle": "Cada área aporta una barrera distinta de prevención.", "roles": [["🛒", "Compras", "No aprueba un químico sin identificarlo y verificar documentación."], ["📦", "Almacén", "No recibe ni ubica un producto sin revisar identidad, integridad y segregación."], ["🏭", "Producción", "No utiliza ni mueve químicos sin registrar consumos y seguir controles."], ["🔍", "Supervisión", "No ignora diferencias, incidentes o desviaciones."], ["📋", "Administración", "Mantiene licencias, permisos, reportes y registros vigentes."]], "message": "IDENTIFICAR · CONSULTAR · CONTROLAR · ESCALAR"}];
+
+
+const OFFICIAL_LINKS = {"ley19": {"label": "Ley 19 de 2005 · PDF oficial", "url": "https://conapred.gob.pa/wp-content/uploads/LEY-19-DE-2005-G.O.-25322-1.pdf"}, "ley19_page": {"label": "Ley 19 de 2005 · CONAPRED", "url": "https://conapred.gob.pa/legal/ley-19-13-de-junio-2005-sobre-medidas-de-prevencion-control-y-fiscalizacion-en-torno-a-la-produccion/"}, "ucq_base": {"label": "Base legal UCQ · CONAPRED", "url": "https://conapred.gob.pa/base-legal-unidad-de-control/"}, "ucq_tramites": {"label": "Trámites, licencias y permisos UCQ", "url": "https://conapred.gob.pa/funciones-requisitos-de-permiso-costos-ucq/"}, "acuerdo17": {"label": "Acuerdo 17-2026 · Gaceta Oficial", "url": "https://s3-legispan.asamblea.gob.pa/legispan/GACETAS/2020/2026/30501-C_2026.pdf"}, "copanit43": {"label": "DGNTI-COPANIT 43-2001 · MICI", "url": "https://mici.gob.pa/wp-content/uploads/2021/12/43rt-dgnti-copanit-43-2001-1.pdf"}, "css45588": {"label": "Resolución 45,588-2011-J.D. · CSS/Gaceta", "url": "https://www.gacetaoficial.gob.pa/storage/gacetas/2011/02/26728/31757.pdf"}, "bomberos": {"label": "Bomberos de Panamá", "url": "https://www.bomberos.gob.pa/"}, "viena": {"label": "Convención de Viena · UNODC", "url": "https://www.unodc.org/unodc/en/treaties/illicit-trafficking.html"}, "cas": {"label": "CAS Registry", "url": "https://www.cas.org/cas-data/cas-registry"}, "pubchem": {"label": "PubChem", "url": "https://pubchem.ncbi.nlm.nih.gov"}, "chemspider": {"label": "ChemSpider", "url": "https://www.chemspider.com"}, "echa": {"label": "ECHA · Information on Chemicals", "url": "https://echa.europa.eu/information-on-chemicals"}};
+
+const SOURCE_CATALOG = [
+  ["ley19","Ley 19 de 13 de junio de 2005","Marco principal de control de precursores y sustancias químicas controladas: licencias, permisos, registros, sanciones y disposiciones aplicables."],
+  ["ucq_base","Base legal UCQ · CONAPRED","Marco legal de la Unidad de Control de Químicos, incluyendo Ley 19, Convención de Viena y normativa complementaria."],
+  ["ucq_tramites","Trámites, licencias y permisos UCQ","Requisitos de registro, licencia de operación y permisos relacionados con importación, exportación, transporte y compra local."],
+  ["acuerdo17","Acuerdo N.° 17-2026 · Gaceta Oficial N.° 30,501-C","Listado actualizado citado en la presentación para sustancias químicas controladas y vigiladas."],
+  ["copanit43","DGNTI-COPANIT 43-2001 · MICI","Reglamento técnico citado en la presentación para manejo seguro, almacenamiento, ventilación, EPP y seguridad industrial."],
+  ["css45588","Resolución 45,588-2011-J.D. · CSS / Gaceta Oficial","Norma citada sobre prevención de riesgos ocupacionales y protección del trabajador expuesto a sustancias químicas."],
+  ["bomberos","Bomberos de Panamá","Acceso institucional para información relacionada con respuesta especializada ante emergencias, incendios y materiales peligrosos."],
+  ["viena","Convención de Viena de 1988 · UNODC","Referencia internacional utilizada para los Cuadros I y II de precursores."],
+  ["cas","CAS Registry","Fuente de consulta para identificación de sustancias por número CAS."],
+  ["pubchem","PubChem","Base de datos química de consulta mencionada en la presentación."],
+  ["chemspider","ChemSpider","Base de datos química de consulta mencionada en la presentación."],
+  ["echa","ECHA · Information on Chemicals","Portal de información sobre sustancias químicas mencionado en la presentación."]
+];
+
+const SLIDE_SOURCES = {
+  1:["ley19","ucq_tramites"],
+  2:["ley19","copanit43"],
+  3:["ley19","acuerdo17"],
+  6:["ley19","ucq_base"],
+  7:["ley19","acuerdo17"],
+  8:["ley19","acuerdo17"],
+  9:["ucq_base","ucq_tramites","ley19"],
+  10:["ley19","ucq_tramites"],
+  11:["ley19","acuerdo17","viena"],
+  12:["ley19","acuerdo17","viena"],
+  13:["ley19","acuerdo17","ucq_tramites"],
+  14:["cas","pubchem","chemspider","echa"],
+  16:["copanit43","css45588"],
+  17:["copanit43","css45588"],
+  20:["copanit43"],
+  21:["copanit43"],
+  22:["copanit43"],
+  23:["copanit43"],
+  24:["copanit43","css45588"],
+  25:["copanit43","css45588"],
+  26:["copanit43","ucq_base"],
+  28:["ley19"],
+  29:["ley19"],
+  30:["ley19","ucq_tramites"],
+  31:["ley19","ucq_tramites"],
+  32:["ley19","ucq_tramites"],
+  33:["ley19","ucq_tramites"],
+  34:["ley19","ucq_tramites"],
+  35:["ley19","ucq_tramites"],
+  36:["ley19","ucq_tramites"],
+  37:["copanit43","bomberos"],
+  38:["copanit43","bomberos"],
+  39:["ley19","ucq_base","ucq_tramites","acuerdo17","copanit43","css45588","bomberos"]
+};
+
+const imgs = [
+"https://images.unsplash.com/photo-1553413077-190dd305871c?auto=format&fit=crop&w=1800&q=82",
+"https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=1800&q=82",
+"https://images.unsplash.com/photo-1587293852726-70cdb56c2866?auto=format&fit=crop&w=1800&q=82",
+"https://images.unsplash.com/photo-1565793298595-6a879b1d9492?auto=format&fit=crop&w=1800&q=82",
+"https://images.unsplash.com/photo-1494412574643-ff11b0a5c1c3?auto=format&fit=crop&w=1800&q=82",
+"https://images.unsplash.com/photo-1578575437130-527eed3abbec?auto=format&fit=crop&w=1800&q=82",
+"https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=1800&q=82",
+"https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=1800&q=82",
+"https://images.unsplash.com/photo-1581092918056-0c4c3acd3789?auto=format&fit=crop&w=1800&q=82",
+"https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=1800&q=82",
+"https://images.unsplash.com/photo-1565891741441-64926e441838?auto=format&fit=crop&w=1800&q=82",
+"https://images.unsplash.com/photo-1592838064575-70ed626d3a0e?auto=format&fit=crop&w=1800&q=82"
+];
+
+const colors = ["c1","c2","c3","c4","c5","c6","c7","c8"];
+let current=0, lock=false;
+
+function img(i){ return imgs[i % imgs.length]; }
+function isLight(s){ return s.theme==="light"; }
+function sceneStart(s,i){
+  const light=isLight(s);
+  return `<section class="scene ${light?"light":""}">
+    <div class="bg" style="background-image:url('${img(i)}')"></div>
+    <div class="overlay ${light?"light":"dark"}"></div>
+    <div class="grid"></div>
+    <div class="content ${light?"text-dark":"text-light"}"><div class="inner">`;
+}
+function sceneEnd(){ return `</div></div></section>`; }
+function header(s,i){
+  const light=isLight(s);
+  return `<div class="header">
+    <div class="eyebrow" style="color:${light?"#0369a1":"#67e8f9"}">${String(i+1).padStart(2,"0")} · Manejo y Control de Productos Químicos</div>
+    <h1 class="title">${s.title}</h1>
+    ${s.subtitle?`<p class="subtitle ${light?"muted-dark":"muted-light"}">${s.subtitle}</p>`:""}
+  </div>`;
+}
+function flipCardHTML(c,s,n){
+  const light=isLight(s), col=colors[n%colors.length];
+  return `<div class="flip-card" tabindex="0" onclick="this.classList.toggle('flipped')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.classList.toggle('flipped')}">
+    <div class="flip-inner">
+      <article class="flip-face flip-front ${light?"glass-light":"glass-dark"}">
+        <div class="icon ${col}">${c[0]}</div>
+        <h3>${c[1]}</h3>
+        <div style="margin-top:14px;font-size:.66rem;font-weight:900;opacity:.62;">TOCA PARA VER LA EXPLICACIÓN</div>
+      </article>
+      <article class="flip-face flip-back ${col}">
+        <h3>${c[1]}</h3>
+        <p>${c[2]}</p>
+        <div style="margin-top:12px;font-size:.64rem;font-weight:900;opacity:.64;">↩ TOCA PARA REGRESAR</div>
+      </article>
+    </div>
+  </div>`;
+}
+function renderCover(s,i){
+  return `<section class="scene">
+    <div class="bg" style="background-image:url('${img(i)}')"></div>
+    <div class="overlay dark"></div><div class="grid"></div>
+    <div class="content text-light"><div class="inner" style="text-align:center;max-width:1000px;">
+      <div style="display:inline-flex;padding:8px 14px;border-radius:999px;background:rgba(34,211,238,.14);border:1px solid rgba(103,232,249,.23);color:#a5f3fc;font-size:.65rem;font-weight:900;letter-spacing:.18em;text-transform:uppercase;">Capacitación Profesional</div>
+      <h1 style="margin:20px auto 0;font-size:clamp(2.4rem,6.5vw,6rem);line-height:.9;letter-spacing:-.05em;font-weight:950;">Manejo y Control de <span style="display:block;color:#67e8f9;">Productos Químicos</span></h1>
+      <p style="max-width:850px;margin:20px auto 0;color:#dbeafe;font-size:clamp(1rem,1.7vw,1.35rem);line-height:1.55;font-weight:650;">${s.intro}</p>
+      <p style="margin-top:18px;color:#a5f3fc;font-weight:750;">${s.subtitle}</p>
+    </div></div>
+  </section>`;
+}
+function renderFlip(s,i){
+  return sceneStart(s,i)+header(s,i)+`<div class="flip-grid">${s.cards.map((c,n)=>flipCardHTML(c,s,n)).join("")}</div>`+sceneEnd();
+}
+function renderCompare(s,i){
+  return sceneStart(s,i)+header(s,i)+`<div class="compare">
+    ${[s.left,s.right].map((x,n)=>`<article class="compare-card ${colors[(n+1)%colors.length]}">
+      <div style="font-size:3rem;">${x[0]}</div><h3 style="margin-top:10px;font-size:clamp(1.5rem,2.5vw,2.3rem);font-weight:950;">${x[1]}</h3><p>${x[2]}</p>
+    </article>`).join("")}
+  </div>`+sceneEnd();
+}
+function renderTabs(s,i){
+  const light=isLight(s);
+  return sceneStart(s,i)+header(s,i)+`<div class="tabs">
+    <div class="tab-list">${s.tabs.map((t,n)=>`<button class="tab-btn ${n===0?"c1":light?"glass-light":"glass-dark"}" onclick="selectTab(this,${n})"><div style="font-size:1.4rem;font-weight:950;">${t[0]}</div><div style="margin-top:4px;">${t[1]}</div></button>`).join("")}</div>
+    <article id="tabPanel" class="tab-panel ${light?"glass-light":"glass-dark"}">
+      <div id="tabIcon" style="font-size:4rem;font-weight:950;color:#22d3ee;">${s.tabs[0][0]}</div>
+      <h3 id="tabTitle" style="margin-top:12px;font-size:clamp(1.5rem,3vw,2.8rem);font-weight:950;">${s.tabs[0][1]}</h3>
+      <p id="tabText">${s.tabs[0][2]}</p>
+    </article>
+  </div>`+sceneEnd();
+}
+function renderTimeline(s,i){
+  return sceneStart(s,i)+header(s,i)+`<div class="timeline">${s.items.map((x,n)=>`<article class="timeline-card ${colors[n%colors.length]}"><div style="font-size:2rem;">${x[0]}</div><h3>${x[1]}</h3><p>${x[2]}</p></article>`).join("")}</div>`+sceneEnd();
+}
+function renderStory(s,i){
+  const light=isLight(s);
+  return sceneStart(s,i)+header(s,i)+`<div class="story">
+    <div class="story-img"><img src="${img(i+3)}" alt="Imagen ilustrativa de bodega o entorno industrial"></div>
+    <article class="story-card ${light?"glass-light":"glass-dark"}">
+      <p>${s.story}</p>
+      <div class="c1" style="margin-top:18px;border-radius:17px;padding:14px;font-weight:850;line-height:1.48;">💡 ${s.takeaway}</div>
+    </article>
+  </div>`+sceneEnd();
+}
+function renderAccordion(s,i){
+  const light=isLight(s);
+  return sceneStart(s,i)+header(s,i)+`<div class="accordion">${s.items.map((x,n)=>`<article class="acc ${light?"glass-light":"glass-dark"}"><button class="acc-head" onclick="this.parentElement.classList.toggle('open');this.querySelector('.sym').textContent=this.parentElement.classList.contains('open')?'−':'＋'"><span style="flex:1;">${x[0]}</span><span class="sym">＋</span></button><div class="acc-body">${x[1]}</div></article>`).join("")}</div>`+sceneEnd();
+}
+function renderBubble(s,i){
+  return sceneStart(s,i)+header(s,i)+`<div class="bubbles">${s.items.map((x,n)=>`<button class="bubble ${colors[n%colors.length]}" data-title="${x[1].replaceAll('"','&quot;')}" data-text="${x[2].replaceAll('"','&quot;')}" data-open="0" onclick="toggleBubble(this)"><div class="bcopy"><div style="font-size:2rem;">${x[0]}</div><div style="margin-top:8px;font-size:1.1rem;font-weight:950;">${x[1]}</div><div style="margin-top:8px;font-size:.66rem;font-weight:900;opacity:.65;">TOCA PARA AMPLIAR</div></div></button>`).join("")}</div>`+sceneEnd();
+}
+function renderQuiz(s,i){
+  const light=isLight(s);
+  return sceneStart(s,i)+header(s,i)+`<article class="quiz ${light?"glass-light":"glass-dark"}"><h2 style="font-size:clamp(1.2rem,2.4vw,2.1rem);font-weight:950;line-height:1.25;">${s.question}</h2><div class="quiz-options">${s.answers.map((a,n)=>`<button class="quiz-option ${light?"glass-light":"glass-dark"}" onclick="answerQuiz(this,${a[2]})"><div class="icon c2" style="margin:auto;">${a[0]}</div><div style="margin-top:10px;font-weight:850;line-height:1.45;">${a[1]}</div></button>`).join("")}</div><div id="qfeedback" style="display:none;margin-top:15px;border-radius:15px;padding:13px;font-weight:850;"></div></article>`+sceneEnd();
+}
+function renderChecklist(s,i){
+  const light=isLight(s);
+  return sceneStart(s,i)+header(s,i)+`<div class="checks">${s.items.map(x=>`<button class="check ${light?"glass-light":"glass-dark"}" onclick="this.classList.toggle('checked')"><span class="box"></span><span style="flex:1;text-align:center;font-size:.9rem;line-height:1.45;font-weight:750;">${x}</span></button>`).join("")}</div>`+sceneEnd();
+}
+function renderFinal(s,i){
+  return sceneStart(s,i)+header(s,i)+`<div class="final-grid">${s.roles.map((x,n)=>`<article class="final-card ${colors[n%colors.length]}"><div style="font-size:2rem;">${x[0]}</div><h3 style="margin-top:8px;font-size:1.12rem;font-weight:950;">${x[1]}</h3><p style="font-size:.88rem;line-height:1.5;">${x[2]}</p></article>`).join("")}</div><div style="margin-top:20px;text-align:center;color:#0e7490;font-size:clamp(1rem,2.5vw,2rem);font-weight:950;letter-spacing:.06em;">${s.message}</div>`+sceneEnd();
+}
+
+function sourceLinksHTML(slideIndex, light){
+  const ids = SLIDE_SOURCES[slideIndex] || [];
+  if(!ids.length) return "";
+  const cls = light ? "light" : "dark";
+  return `<div class="source-links">${
+    ids.map(id=>{
+      const x=OFFICIAL_LINKS[id];
+      if(!x) return "";
+      return `<a class="source-link ${cls}" href="${x.url}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">
+        <span>↗</span><span>${x.label}</span>
+      </a>`;
+    }).join("")
+  }</div>
+  <div class="sources-note">Accesos de consulta incluidos en la presentación original.</div>`;
+}
+
+function injectSlideSources(markup, slideIndex, slide){
+  const links = sourceLinksHTML(slideIndex, isLight(slide));
+  if(!links) return markup;
+  const closing = `</div></div></section>`;
+  const pos = markup.lastIndexOf(closing);
+  if(pos < 0) return markup;
+  return markup.slice(0,pos) + links + markup.slice(pos);
+}
+
+function buildSourcesModal(){
+  const grid=document.getElementById("sourcesGrid");
+  grid.innerHTML=SOURCE_CATALOG.map(([id,title,description])=>{
+    const x=OFFICIAL_LINKS[id];
+    return `<article class="source-resource">
+      <div>
+        <h3>${title}</h3>
+        <p>${description}</p>
+      </div>
+      <a href="${x.url}" target="_blank" rel="noopener noreferrer">
+        <span>↗</span><span>Abrir fuente oficial</span>
+      </a>
+    </article>`;
+  }).join("");
+}
+
+function renderMarkup(s,i){
+  switch(s.type){
+    case "cover": return renderCover(s,i);
+    case "flip": return renderFlip(s,i);
+    case "compare": return renderCompare(s,i);
+    case "tabs": return renderTabs(s,i);
+    case "timeline": return renderTimeline(s,i);
+    case "story": return renderStory(s,i);
+    case "accordion": return renderAccordion(s,i);
+    case "bubble": return renderBubble(s,i);
+    case "quiz": return renderQuiz(s,i);
+    case "checklist": return renderChecklist(s,i);
+    case "final": return renderFinal(s,i);
+    default: return renderFlip(s,i);
+  }
+}
+function renderSlide(index,dir=1){
+  if(lock||index<0||index>=slides.length) return;
+  lock=true; current=index;
+  const root=document.getElementById("root");
+  const sh=document.createElement("div");
+  sh.className="slide-shell "+(dir>=0?"enter-right":"enter-left");
+  sh.innerHTML=injectSlideSources(renderMarkup(slides[index],index),index,slides[index]);
+  root.appendChild(sh);
+  requestAnimationFrame(()=>requestAnimationFrame(()=>sh.classList.remove("enter-right","enter-left")));
+  [...root.querySelectorAll(".slide-shell")].filter(x=>x!==sh).forEach(old=>{old.style.opacity=0;old.style.transform=dir>=0?"translateX(-4vw)":"translateX(4vw)";setTimeout(()=>old.remove(),400);});
+  updateUI();
+  setTimeout(()=>{lucide.createIcons();lock=false;},420);
+}
+function selectTab(btn,n){
+  const s=slides[current], light=isLight(s);
+  document.querySelectorAll(".tab-btn").forEach(b=>{b.className="tab-btn "+(light?"glass-light":"glass-dark");});
+  btn.className="tab-btn c1";
+  const t=s.tabs[n];
+  document.getElementById("tabIcon").textContent=t[0];
+  document.getElementById("tabTitle").textContent=t[1];
+  document.getElementById("tabText").textContent=t[2];
+}
+function toggleBubble(btn){
+  const open=btn.dataset.open==="1", box=btn.querySelector(".bcopy");
+  box.innerHTML=open?`<div style="font-size:1.1rem;font-weight:950;">${btn.dataset.title}</div><div style="margin-top:8px;font-size:.66rem;font-weight:900;opacity:.65;">TOCA PARA AMPLIAR</div>`:`<div style="font-size:.9rem;line-height:1.55;font-weight:700;">${btn.dataset.text}</div><div style="margin-top:9px;font-size:.64rem;font-weight:900;opacity:.65;">TOCA PARA REGRESAR</div>`;
+  btn.dataset.open=open?"0":"1";
+}
+function answerQuiz(btn,correct){
+  document.querySelectorAll(".quiz-option").forEach(x=>x.style.outline="none");
+  btn.style.outline=correct?"3px solid #22c55e":"3px solid #ef4444";
+  const f=document.getElementById("qfeedback"); f.style.display="block";
+  f.className=correct?"c3":"c8"; f.textContent=correct?"✅ "+slides[current].feedback:"❌ Revisa nuevamente el concepto y vuelve a intentarlo.";
+}
+function updateUI(){
+  document.getElementById("progress").style.width=((current+1)/slides.length*100)+"%";
+  document.getElementById("counter").textContent=String(current+1).padStart(2,"0")+" / "+slides.length;
+  document.getElementById("prev").disabled=current===0;
+  document.getElementById("next").disabled=current===slides.length-1;
+  document.querySelectorAll(".bullet").forEach((b,i)=>b.classList.toggle("current",i===current));
+  document.querySelectorAll(".bullet")[current]?.scrollIntoView({inline:"center",block:"nearest"});
+}
+function buildBullets(){
+  document.getElementById("bullets").innerHTML=slides.map((s,i)=>`<button class="bullet" data-i="${i}" title="${i+1}. ${s.title}"></button>`).join("");
+  document.querySelectorAll(".bullet").forEach(b=>b.onclick=()=>{const t=+b.dataset.i;renderSlide(t,t>=current?1:-1);});
+}
+function buildIndex(){
+  document.getElementById("indexGrid").innerHTML=slides.map((s,i)=>`<button class="index-card" data-i="${i}"><div style="width:34px;height:34px;margin:0 auto 8px;border-radius:10px;display:grid;place-items:center;background:#22d3ee;color:#083344;font-size:.72rem;font-weight:950;">${String(i+1).padStart(2,"0")}</div><div style="font-size:.8rem;line-height:1.28;font-weight:850;">${s.title}</div></button>`).join("");
+  document.querySelectorAll(".index-card").forEach(b=>b.onclick=()=>{const t=+b.dataset.i;document.getElementById("indexModal").classList.add("hidden");renderSlide(t,t>=current?1:-1);});
+}
+document.getElementById("next").onclick=()=>current<slides.length-1&&renderSlide(current+1,1);
+document.getElementById("prev").onclick=()=>current>0&&renderSlide(current-1,-1);
+document.getElementById("menu").onclick=()=>document.getElementById("indexModal").classList.remove("hidden");
+document.getElementById("closeIndex").onclick=()=>document.getElementById("indexModal").classList.add("hidden");
+document.getElementById("sourcesBtn").onclick=()=>document.getElementById("sourcesModal").classList.remove("hidden");
+document.getElementById("closeSources").onclick=()=>document.getElementById("sourcesModal").classList.add("hidden");
+document.getElementById("full").onclick=async()=>{try{document.fullscreenElement?await document.exitFullscreen():await document.documentElement.requestFullscreen();}catch(e){}};
+document.addEventListener("keydown",e=>{if(e.key==="ArrowRight")document.getElementById("next").click();if(e.key==="ArrowLeft")document.getElementById("prev").click();if(e.key==="Escape"){document.getElementById("indexModal").classList.add("hidden");document.getElementById("sourcesModal").classList.add("hidden");}});
+let sx=0,sy=0,st=0;
+document.addEventListener("touchstart",e=>{if(e.touches.length===1){sx=e.touches[0].clientX;sy=e.touches[0].clientY;st=Date.now();}},{passive:true});
+document.addEventListener("touchend",e=>{const dx=e.changedTouches[0].clientX-sx,dy=e.changedTouches[0].clientY-sy;if(Math.abs(dx)>70&&Math.abs(dx)>Math.abs(dy)*1.4&&Date.now()-st<700)dx<0?document.getElementById("next").click():document.getElementById("prev").click();},{passive:true});
+buildBullets(); buildIndex(); buildSourcesModal(); renderSlide(0,1);
+</script>
+</body>
+</html>
